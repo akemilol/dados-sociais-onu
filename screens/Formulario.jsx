@@ -9,21 +9,43 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import estilos from '../styles/global';
 
 export default function Formulario() {
   const [nome, setNome] = useState('');
   const [mensagem, setMensagem] = useState('');
 
-  function enviarFormulario() {
-    if (!nome || !messagem) {
+  async function enviarFormulario() {
+    if (!nome.trim() || !mensagem.trim()) {
       Alert.alert('Atenção', 'Por favor, preencha todos os campos!');
       return;
     }
 
-    Alert.alert('Obrigado!', `Sua mensagem foi enviada com sucesso, ${nome}.`);
-    setNome('');
-    setMensagem('');
+    if (/\d/.test(nome)) {
+      Alert.alert('Nome inválido', 'O campo "nome" não pode conter números.');
+      return;
+    }
+
+    const novoRelato = {
+      nome,
+      mensagem,
+      data: new Date().toLocaleString(),
+    };
+
+    try {
+      const dadosAntigos = await AsyncStorage.getItem('relatos');
+      const relatos = dadosAntigos ? JSON.parse(dadosAntigos) : [];
+      relatos.push(novoRelato);
+      await AsyncStorage.setItem('relatos', JSON.stringify(relatos));
+
+      Alert.alert('Obrigado!', `Sua mensagem foi enviada com sucesso, ${nome}.`);
+      setNome('');
+      setMensagem('');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar o relato.');
+      console.error(error);
+    }
   }
 
   return (
@@ -61,7 +83,6 @@ export default function Formulario() {
         <Text style={estilos.botaoTexto}>Enviar</Text>
       </TouchableOpacity>
 
-      {/* Imagens lado a lado */}
       <View style={styles.imagensBox}>
         <Image
           source={require('../assets/img/tirinha.jpg')}
